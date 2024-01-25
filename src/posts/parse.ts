@@ -7,7 +7,7 @@ import meta = require('../meta');
 import plugins = require('../plugins');
 import translator = require('../translator');
 import utils = require('../utils');
-
+import cache = require('../cache');
 
 interface SanitizeConfig {
     allowedTags: string[],
@@ -127,10 +127,7 @@ function ParsePosts(Posts: PostType) {
 
         const pid = String(postData.pid);
 
-        // The next line calls a function in a module that has not been updated to TS yet
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        const cache = require('./cache');
-        const cachedContent:string | undefined = cache.get(pid) as string | undefined;
+        const cachedContent:string = cache.get(pid) as string;
         if (postData.pid && cachedContent !== undefined) {
             postData.content = cachedContent;
             return postData;
@@ -212,26 +209,43 @@ function ParsePosts(Posts: PostType) {
     Posts.registerHooks = () => {
         plugins.hooks.register('core', {
             hook: 'filter:parse.post',
-            method: async (data:DataType) => {
-                data.postData.content = Posts.sanitize(data.postData.content);
+            method: async function (data:DataType) {
+                await new Promise((resolve) => {
+                    data.postData.content = Posts.sanitize(data.postData.content);
+                    resolve('Obtained');
+                });
                 return data;
             },
         });
 
         plugins.hooks.register('core', {
             hook: 'filter:parse.raw',
-            method: async (content:string) => Posts.sanitize(content),
+            method: async function (content: string) {
+                // learned how to implmenet promises here: https://stackoverflow.com/questions/35318442/how-to-pass-parameter-to-a-promise-function
+                return await new Promise((resolve) => {
+                    Posts.sanitize(content);
+                    resolve('Obtained');
+                });
+            },
         });
 
         plugins.hooks.register('core', {
             hook: 'filter:parse.aboutme',
-            method: async (content:string) => Posts.sanitize(content),
+            method: async function (content:string) {
+                return await new Promise((resolve) => {
+                    Posts.sanitize(content);
+                    resolve('Obtained');
+                });
+            },
         });
 
         plugins.hooks.register('core', {
             hook: 'filter:parse.signature',
-            method: async (data:UserDataTypeStorage) => {
-                data.userData.signature = Posts.sanitize(data.userData.signature);
+            method: async function (data:UserDataTypeStorage) {
+                await new Promise((resolve) => {
+                    data.userData.signature = Posts.sanitize(data.userData.signature);
+                    resolve('Obtained');
+                });
                 return data;
             },
         });

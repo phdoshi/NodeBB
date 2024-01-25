@@ -17,6 +17,7 @@ const meta = require("../meta");
 const plugins = require("../plugins");
 const translator = require("../translator");
 const utils = require("../utils");
+const cache = require("../cache");
 let sanitizeConfig = {};
 sanitizeConfig.allowedTags = sanitize.defaults.allowedTags.concat([
     // Some safe-to-use tags to add
@@ -60,9 +61,6 @@ function ParsePosts(Posts) {
             }
             postData.content = String(postData.content || '');
             const pid = String(postData.pid);
-            // The next line calls a function in a module that has not been updated to TS yet
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-            const cache = require('./cache');
             const cachedContent = cache.get(pid);
             if (postData.pid && cachedContent !== undefined) {
                 postData.content = cachedContent;
@@ -138,25 +136,50 @@ function ParsePosts(Posts) {
     Posts.registerHooks = () => {
         plugins.hooks.register('core', {
             hook: 'filter:parse.post',
-            method: (data) => __awaiter(this, void 0, void 0, function* () {
-                data.postData.content = Posts.sanitize(data.postData.content);
-                return data;
-            }),
+            method: function (data) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    yield new Promise((resolve) => {
+                        data.postData.content = Posts.sanitize(data.postData.content);
+                        resolve('Obtained');
+                    });
+                    return data;
+                });
+            },
         });
         plugins.hooks.register('core', {
             hook: 'filter:parse.raw',
-            method: (content) => __awaiter(this, void 0, void 0, function* () { return Posts.sanitize(content); }),
+            method: function (content) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    // learned how to implmenet promises here: https://stackoverflow.com/questions/35318442/how-to-pass-parameter-to-a-promise-function
+                    return yield new Promise((resolve) => {
+                        Posts.sanitize(content);
+                        resolve('Obtained');
+                    });
+                });
+            },
         });
         plugins.hooks.register('core', {
             hook: 'filter:parse.aboutme',
-            method: (content) => __awaiter(this, void 0, void 0, function* () { return Posts.sanitize(content); }),
+            method: function (content) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    return yield new Promise((resolve) => {
+                        Posts.sanitize(content);
+                        resolve('Obtained');
+                    });
+                });
+            },
         });
         plugins.hooks.register('core', {
             hook: 'filter:parse.signature',
-            method: (data) => __awaiter(this, void 0, void 0, function* () {
-                data.userData.signature = Posts.sanitize(data.userData.signature);
-                return data;
-            }),
+            method: function (data) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    yield new Promise((resolve) => {
+                        data.userData.signature = Posts.sanitize(data.userData.signature);
+                        resolve('Obtained');
+                    });
+                    return data;
+                });
+            },
         });
     };
 }
