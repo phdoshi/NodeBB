@@ -8,7 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-Object.defineProperty(exports, "__esModule", { value: true });
 const nconf = require("nconf");
 const url = require("url");
 const winston = require("winston");
@@ -18,7 +17,6 @@ const meta = require("../meta");
 const plugins = require("../plugins");
 const translator = require("../translator");
 const utils = require("../utils");
-const cache = require("./cache");
 let sanitizeConfig = {};
 sanitizeConfig.allowedTags = sanitize.defaults.allowedTags.concat([
     // Some safe-to-use tags to add
@@ -31,7 +29,7 @@ sanitizeConfig.globalAttributes = ['accesskey', 'class', 'contenteditable', 'dir
     'draggable', 'dropzone', 'hidden', 'id', 'lang', 'spellcheck', 'style',
     'tabindex', 'title', 'translate', 'aria-expanded', 'data-*',
 ];
-module.exports = function (Posts) {
+function ParsePosts(Posts) {
     function sanitizeSignature(signature) {
         signature = translator.escape(signature);
         const tagsToStrip = [];
@@ -62,6 +60,9 @@ module.exports = function (Posts) {
             }
             postData.content = String(postData.content || '');
             const pid = String(postData.pid);
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+            const cache = require('./cache');
             const cachedContent = cache.get(pid);
             if (postData.pid && cachedContent !== undefined) {
                 postData.content = cachedContent;
@@ -137,25 +138,26 @@ module.exports = function (Posts) {
     Posts.registerHooks = () => {
         plugins.hooks.register('core', {
             hook: 'filter:parse.post',
-            method: (data) => {
+            method: (data) => __awaiter(this, void 0, void 0, function* () {
                 data.postData.content = Posts.sanitize(data.postData.content);
                 return data;
-            },
+            }),
         });
         plugins.hooks.register('core', {
             hook: 'filter:parse.raw',
-            method: (content) => Posts.sanitize(content),
+            method: (content) => __awaiter(this, void 0, void 0, function* () { return Posts.sanitize(content); }),
         });
         plugins.hooks.register('core', {
             hook: 'filter:parse.aboutme',
-            method: (content) => Posts.sanitize(content),
+            method: (content) => __awaiter(this, void 0, void 0, function* () { return Posts.sanitize(content); }),
         });
         plugins.hooks.register('core', {
             hook: 'filter:parse.signature',
-            method: (data) => {
+            method: (data) => __awaiter(this, void 0, void 0, function* () {
                 data.userData.signature = Posts.sanitize(data.userData.signature);
                 return data;
-            },
+            }),
         });
     };
-};
+}
+module.exports = ParsePosts;

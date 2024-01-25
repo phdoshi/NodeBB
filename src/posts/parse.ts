@@ -7,7 +7,6 @@ import meta = require('../meta');
 import plugins = require('../plugins');
 import translator = require('../translator');
 import utils = require('../utils');
-import cache = require('./cache');
 
 
 interface SanitizeConfig {
@@ -91,7 +90,7 @@ sanitizeConfig.globalAttributes = ['accesskey', 'class', 'contenteditable', 'dir
 ];
 
 
-module.exports = function (Posts: PostType) {
+function ParsePosts(Posts: PostType) {
     function sanitizeSignature(signature: string) {
         signature = translator.escape(signature);
         const tagsToStrip = [];
@@ -128,6 +127,9 @@ module.exports = function (Posts: PostType) {
 
         const pid = String(postData.pid);
 
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        const cache = require('./cache');
         const cachedContent:string | undefined = cache.get(pid) as string | undefined;
         if (postData.pid && cachedContent !== undefined) {
             postData.content = cachedContent;
@@ -210,7 +212,7 @@ module.exports = function (Posts: PostType) {
     Posts.registerHooks = () => {
         plugins.hooks.register('core', {
             hook: 'filter:parse.post',
-            method: (data:DataType) => {
+            method: async (data:DataType) => {
                 data.postData.content = Posts.sanitize(data.postData.content);
                 return data;
             },
@@ -218,20 +220,22 @@ module.exports = function (Posts: PostType) {
 
         plugins.hooks.register('core', {
             hook: 'filter:parse.raw',
-            method: (content:string) => Posts.sanitize(content),
+            method: async (content:string) => Posts.sanitize(content),
         });
 
         plugins.hooks.register('core', {
             hook: 'filter:parse.aboutme',
-            method: (content:string) => Posts.sanitize(content),
+            method: async (content:string) => Posts.sanitize(content),
         });
 
         plugins.hooks.register('core', {
             hook: 'filter:parse.signature',
-            method: (data:UserDataTypeStorage) => {
+            method: async (data:UserDataTypeStorage) => {
                 data.userData.signature = Posts.sanitize(data.userData.signature);
                 return data;
             },
         });
     };
-};
+}
+
+export = ParsePosts;
