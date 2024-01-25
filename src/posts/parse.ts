@@ -206,6 +206,7 @@ function ParsePosts(Posts: PostType) {
         sanitizeConfig = await plugins.hooks.fire('filter:sanitize.config', sanitizeConfig) as SanitizeConfig;
     };
 
+    // learned how to implmenet promises here: https://stackoverflow.com/questions/35318442/how-to-pass-parameter-to-a-promise-function
     Posts.registerHooks = () => {
         plugins.hooks.register('core', {
             hook: 'filter:parse.post',
@@ -221,7 +222,6 @@ function ParsePosts(Posts: PostType) {
         plugins.hooks.register('core', {
             hook: 'filter:parse.raw',
             method: async function (content: string) {
-                // learned how to implmenet promises here: https://stackoverflow.com/questions/35318442/how-to-pass-parameter-to-a-promise-function
                 return await new Promise((resolve) => {
                     Posts.sanitize(content);
                     resolve('Obtained');

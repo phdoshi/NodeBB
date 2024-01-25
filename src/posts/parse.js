@@ -133,6 +133,7 @@ function ParsePosts(Posts) {
         // Some plugins might need to adjust or whitelist their own tags...
         sanitizeConfig = (yield plugins.hooks.fire('filter:sanitize.config', sanitizeConfig));
     });
+    // learned how to implmenet promises here: https://stackoverflow.com/questions/35318442/how-to-pass-parameter-to-a-promise-function
     Posts.registerHooks = () => {
         plugins.hooks.register('core', {
             hook: 'filter:parse.post',
@@ -150,7 +151,6 @@ function ParsePosts(Posts) {
             hook: 'filter:parse.raw',
             method: function (content) {
                 return __awaiter(this, void 0, void 0, function* () {
-                    // learned how to implmenet promises here: https://stackoverflow.com/questions/35318442/how-to-pass-parameter-to-a-promise-function
                     return yield new Promise((resolve) => {
                         Posts.sanitize(content);
                         resolve('Obtained');
